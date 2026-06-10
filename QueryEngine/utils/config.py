@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     QUERY_ENGINE_PROVIDER: Optional[str] = Field(None, description="Query Engine LLM提供商（兼容字段）")
     
     # ================== 网络工具配置 ====================
+    QUERY_SEARCH_TOOL_TYPE: Optional[str] = Field(None, description="Query Engine专用搜索工具类型；可设置为TavilyAPI覆盖全局选择")
     TAVILY_API_KEY: Optional[str] = Field(None, description="Tavily API密钥，仅保留用于旧工具兼容")
     SEARXNG_BASE_URL: str = Field("http://localhost:8080", description="SearXNG Base URL，例如 http://localhost:8080")
     SEARXNG_LANGUAGE: str = Field("zh-CN", description="SearXNG 搜索语言")
@@ -73,6 +74,7 @@ def print_config(config: Settings):
     message += "=== Query Engine 配置 ===\n"
     message += f"LLM 模型: {config.QUERY_ENGINE_MODEL_NAME}\n"
     message += f"LLM Base URL: {config.QUERY_ENGINE_BASE_URL or '(默认)'}\n"
+    message += f"Query搜索工具覆盖: {config.QUERY_SEARCH_TOOL_TYPE or '(未设置)'}\n"
     message += f"SearXNG Base URL: {config.SEARXNG_BASE_URL}\n"
     message += f"Tavily API Key (旧工具兼容，可选): {'已配置' if config.TAVILY_API_KEY else '未配置'}\n"
     message += f"搜索超时: {config.SEARCH_TIMEOUT} 秒\n"

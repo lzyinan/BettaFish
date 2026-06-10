@@ -1,4 +1,7 @@
 import QueryEngine.tools.search as search_module
+from types import SimpleNamespace
+
+from QueryEngine.agent import DeepSearchAgent
 from QueryEngine.tools.search import SearXNGNewsAgency
 
 
@@ -109,3 +112,55 @@ def test_from_config_uses_defaults_for_legacy_config(monkeypatch):
         {"query": "事件", "kwargs": {"max_results": 7}}
     ]
     assert response.query == "事件"
+
+
+def test_query_agent_uses_tavily_for_legacy_non_searxng_config(monkeypatch):
+    created = []
+
+    class FakeTavilyNewsAgency:
+        def __init__(self, api_key):
+            self.api_key = api_key
+            created.append(self)
+
+    class FakeSearXNGNewsAgency:
+        @classmethod
+        def from_config(cls, config):
+            raise AssertionError("SearXNG should not be selected for legacy Tavily config")
+
+    monkeypatch.setattr("QueryEngine.agent.TavilyNewsAgency", FakeTavilyNewsAgency)
+    monkeypatch.setattr("QueryEngine.agent.SearXNGNewsAgency", FakeSearXNGNewsAgency)
+
+    agent = DeepSearchAgent.__new__(DeepSearchAgent)
+    agent.config = SimpleNamespace(SEARCH_TOOL_TYPE="AnspireAPI", TAVILY_API_KEY="token")
+
+    agency = agent._initialize_search_agency()
+
+    assert agency is created[0]
+    assert agency.api_key == "token"
+
+
+def test_query_agent_defaults_to_searxng_when_search_tool_unset(monkeypatch):
+    created = []
+
+    class FakeTavilyNewsAgency:
+        def __init__(self, api_key):
+            raise AssertionError("Tavily should not be selected by default")
+
+    class FakeSearXNGNewsAgency:
+        @classmethod
+        def from_config(cls, config):
+            agency = cls()
+            agency.config = config
+            created.append(agency)
+            return agency
+
+    monkeypatch.setattr("QueryEngine.agent.TavilyNewsAgency", FakeTavilyNewsAgency)
+    monkeypatch.setattr("QueryEngine.agent.SearXNGNewsAgency", FakeSearXNGNewsAgency)
+
+    agent = DeepSearchAgent.__new__(DeepSearchAgent)
+    agent.config = SimpleNamespace(TAVILY_API_KEY=None)
+
+    agency = agent._initialize_search_agency()
+
+    assert agency is created[0]
+    assert agency.config is agent.config

@@ -19,7 +19,7 @@ from .nodes import (
     ReportFormattingNode
 )
 from .state import State
-from .tools import SearXNGNewsAgency, TavilyResponse
+from .tools import SearXNGNewsAgency, TavilyNewsAgency, TavilyResponse
 from .utils import Settings, format_search_results_for_prompt
 from loguru import logger
 
@@ -41,7 +41,7 @@ class DeepSearchAgent:
         self.llm_client = self._initialize_llm()
         
         # 初始化搜索工具集
-        self.search_agency = SearXNGNewsAgency.from_config(self.config)
+        self.search_agency = self._initialize_search_agency()
         
         # 初始化节点
         self._initialize_nodes()
@@ -54,7 +54,7 @@ class DeepSearchAgent:
         
         logger.info(f"Query Agent已初始化")
         logger.info(f"使用LLM: {self.llm_client.get_model_info()}")
-        logger.info(f"搜索工具集: SearXNGNewsAgency (支持6种搜索工具)")
+        logger.info(f"搜索工具集: {self.search_agency.__class__.__name__} (支持6种搜索工具)")
     
     def _initialize_llm(self) -> LLMClient:
         """初始化LLM客户端"""
@@ -63,6 +63,22 @@ class DeepSearchAgent:
             model_name=self.config.QUERY_ENGINE_MODEL_NAME,
             base_url=self.config.QUERY_ENGINE_BASE_URL,
         )
+
+    def _initialize_search_agency(self):
+        """初始化搜索工具集，默认使用SearXNG并保留旧Tavily兼容路径。"""
+        search_tool_type = (
+            getattr(self.config, "QUERY_SEARCH_TOOL_TYPE", None)
+            or getattr(self.config, "SEARCH_TOOL_TYPE", None)
+            or "SearXNGAPI"
+        )
+        tavily_api_key = getattr(self.config, "TAVILY_API_KEY", None)
+
+        if search_tool_type != "SearXNGAPI" and tavily_api_key:
+            logger.info(f"Query Engine选择TavilyNewsAgency，搜索工具类型: {search_tool_type}")
+            return TavilyNewsAgency(api_key=tavily_api_key)
+
+        logger.info(f"Query Engine选择SearXNGNewsAgency，搜索工具类型: {search_tool_type}")
+        return SearXNGNewsAgency.from_config(self.config)
     
     def _initialize_nodes(self):
         """初始化处理节点"""
