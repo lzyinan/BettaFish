@@ -2124,7 +2124,9 @@
                     { key: 'SEARXNG_TIMEOUT', label: 'SearXNG 超时秒数', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
                     { key: 'SEARXNG_MAX_RESULTS', label: 'SearXNG 最大结果数', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
                     { key: 'TAVILY_API_KEY', label: 'Tavily API Key（旧工具兼容）', type: 'password' },
+                    { key: 'BOCHA_BASE_URL', label: 'Bocha Base URL', condition: { key: 'SEARCH_TOOL_TYPE', value: 'BochaAPI' } },
                     { key: 'BOCHA_WEB_SEARCH_API_KEY', label: 'Bocha API Key', type: 'password', condition: { key: 'SEARCH_TOOL_TYPE', value: 'BochaAPI' } },
+                    { key: 'ANSPIRE_BASE_URL', label: 'Anspire Base URL', condition: { key: 'SEARCH_TOOL_TYPE', value: 'AnspireAPI' } },
                     { key: 'ANSPIRE_API_KEY', label: 'Anspire API Key', type: 'password', condition: { key: 'SEARCH_TOOL_TYPE', value: 'AnspireAPI' } }
                 ]
             }

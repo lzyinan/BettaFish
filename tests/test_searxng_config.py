@@ -1,7 +1,19 @@
 from config import Settings
 
 
-def test_global_settings_default_to_searxng_without_api_key():
+def test_global_settings_default_to_searxng_without_api_key(monkeypatch):
+    for env_key in [
+        "SEARCH_TOOL_TYPE",
+        "SEARXNG_BASE_URL",
+        "SEARXNG_LANGUAGE",
+        "SEARXNG_SAFESEARCH",
+        "SEARXNG_CATEGORIES",
+        "SEARXNG_ENGINES",
+        "SEARXNG_TIMEOUT",
+        "SEARXNG_MAX_RESULTS",
+    ]:
+        monkeypatch.delenv(env_key, raising=False)
+
     settings = Settings(_env_file=None)
 
     assert settings.SEARCH_TOOL_TYPE == "SearXNGAPI"
