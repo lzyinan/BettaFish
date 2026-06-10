@@ -33,13 +33,14 @@ if utils_dir not in sys.path:
     sys.path.append(utils_dir)
 
 from retry_helper import with_graceful_retry, SEARCH_API_RETRY_CONFIG
+from utils.searxng_client import SearXNGClient, SearXNGResponse
 from dataclasses import dataclass, field
 
 # 运行前请确保已安装Tavily库: pip install tavily-python
 try:
     from tavily import TavilyClient
 except ImportError:
-    raise ImportError("Tavily库未安装，请运行 `pip install tavily-python` 进行安装。")
+    TavilyClient = None
 
 # --- 1. 数据结构定义 ---
 
@@ -86,6 +87,8 @@ class TavilyNewsAgency:
         Args:
             api_key: Tavily API密钥，若不提供则从环境变量 TAVILY_API_KEY 读取。
         """
+        if TavilyClient is None:
+            raise ImportError("Tavily库未安装，请运行 `pip install tavily-python` 进行安装。")
         if api_key is None:
             api_key = os.getenv("TAVILY_API_KEY")
             if not api_key:
@@ -188,6 +191,100 @@ class TavilyNewsAgency:
         return self._search_internal(
             query=query, start_date=start_date, end_date=end_date, max_results=15
         )
+
+
+class SearXNGNewsAgency:
+    """
+    SearXNG-backed news search agency with the same public tools as TavilyNewsAgency.
+    It returns TavilyResponse so existing QueryEngine nodes do not need to change.
+    """
+
+    def __init__(self, client: Optional[SearXNGClient] = None, **client_kwargs):
+        if client is not None:
+            self._client = client
+        else:
+            self._client = SearXNGClient(**client_kwargs)
+
+    @classmethod
+    def from_config(cls, config) -> "SearXNGNewsAgency":
+        return cls(
+            base_url=config.SEARXNG_BASE_URL,
+            language=config.SEARXNG_LANGUAGE,
+            safesearch=config.SEARXNG_SAFESEARCH,
+            categories=config.SEARXNG_CATEGORIES,
+            engines=config.SEARXNG_ENGINES,
+            timeout=config.SEARXNG_TIMEOUT,
+            max_results=config.SEARXNG_MAX_RESULTS,
+        )
+
+    @with_graceful_retry(SEARCH_API_RETRY_CONFIG, default_return=TavilyResponse(query="搜索失败"))
+    def _search_internal(self, query: str, **kwargs) -> TavilyResponse:
+        try:
+            response = self._client.search(query, **kwargs)
+            return self._to_tavily_response(response)
+        except Exception as e:
+            print(f"SearXNG搜索时发生错误: {str(e)}")
+            raise e
+
+    def _to_tavily_response(self, response: SearXNGResponse) -> TavilyResponse:
+        search_results = [
+            SearchResult(
+                title=item.title,
+                url=item.url,
+                content=item.content,
+                score=item.score,
+                raw_content=item.raw_content,
+                published_date=item.published_date,
+            )
+            for item in response.results
+        ]
+
+        image_results = []
+        for item in response.results:
+            image_url = item.image_url or item.thumbnail_url
+            if image_url:
+                image_results.append(
+                    ImageResult(
+                        url=image_url,
+                        description=item.title or item.content,
+                    )
+                )
+
+        answer = response.answers[0] if response.answers else None
+        return TavilyResponse(
+            query=response.query,
+            answer=answer,
+            results=search_results,
+            images=image_results,
+            response_time=response.response_time,
+        )
+
+    # --- Agent 可用的工具方法 ---
+
+    def basic_search_news(self, query: str, max_results: int = 7) -> TavilyResponse:
+        print(f"--- TOOL: SearXNG基础新闻搜索 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=max_results)
+
+    def deep_search_news(self, query: str) -> TavilyResponse:
+        print(f"--- TOOL: SearXNG深度新闻分析 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=20)
+
+    def search_news_last_24_hours(self, query: str) -> TavilyResponse:
+        print(f"--- TOOL: SearXNG搜索24小时内新闻 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=10, time_range="day")
+
+    def search_news_last_week(self, query: str) -> TavilyResponse:
+        print(f"--- TOOL: SearXNG搜索本周新闻 (query: {query}) ---")
+        return self._search_internal(query=f"{query} 最近一周", max_results=10, time_range="month")
+
+    def search_images_for_news(self, query: str) -> TavilyResponse:
+        print(f"--- TOOL: SearXNG查找新闻图片 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=5, categories="images")
+
+    def search_news_by_date(self, query: str, start_date: str, end_date: str) -> TavilyResponse:
+        print(f"--- TOOL: SearXNG按指定日期范围搜索新闻 (query: {query}, from: {start_date}, to: {end_date}) ---")
+        date_query = f"{query} after:{start_date} before:{end_date}"
+        return self._search_internal(query=date_query, max_results=15)
 
 
 # --- 3. 测试与使用示例 ---
