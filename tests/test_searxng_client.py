@@ -74,10 +74,13 @@ def test_search_maps_result_fields_and_limits_results():
                 "title": "标题一",
                 "url": "https://example.com/a",
                 "content": "摘要一",
+                "raw_content": "原始摘要一",
                 "score": 0.9,
                 "publishedDate": "2026-06-09",
                 "engine": "bing",
                 "category": "general",
+                "img_src": "https://example.com/image.jpg",
+                "thumbnail": "https://example.com/thumb.jpg",
             },
             {
                 "title": "标题二",
@@ -101,9 +104,13 @@ def test_search_maps_result_fields_and_limits_results():
     assert response.results[0].title == "标题一"
     assert response.results[0].url == "https://example.com/a"
     assert response.results[0].content == "摘要一"
-    assert response.results[0].raw_content == "摘要一"
+    assert response.results[0].raw_content == "原始摘要一"
     assert response.results[0].published_date == "2026-06-09"
     assert response.results[0].score == 0.9
+    assert response.results[0].engine == "bing"
+    assert response.results[0].category == "general"
+    assert response.results[0].image_url == "https://example.com/image.jpg"
+    assert response.results[0].thumbnail_url == "https://example.com/thumb.jpg"
 
 
 def test_search_raises_clear_error_for_disabled_json_format():

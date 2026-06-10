@@ -141,7 +141,7 @@ class SearXNGClient:
 
     def _parse_result(self, item: Dict[str, Any]) -> SearXNGResult:
         content = self._first_text(item.get("content"), item.get("metadata"), item.get("engine"))
-        raw_content = self._first_text(item.get("content"), item.get("metadata"))
+        raw_content = self._first_text(item.get("raw_content"), item.get("content"), item.get("metadata"))
 
         return SearXNGResult(
             title=self._first_text(item.get("title"), item.get("url")),
