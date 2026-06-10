@@ -52,6 +52,7 @@ def test_query_tools_map_to_searxng_parameters():
 
     agency.search_news_last_24_hours("事件")
     agency.search_news_last_week("事件")
+    agency.deep_search_news("事件")
     agency.search_images_for_news("事件")
     agency.search_news_by_date("事件", "2026-06-01", "2026-06-09")
 
@@ -65,9 +66,13 @@ def test_query_tools_map_to_searxng_parameters():
     }
     assert fake_client.calls[2] == {
         "query": "事件",
-        "kwargs": {"max_results": 5, "categories": "images"},
+        "kwargs": {"max_results": 20},
     }
     assert fake_client.calls[3] == {
+        "query": "事件",
+        "kwargs": {"max_results": 5, "categories": "images"},
+    }
+    assert fake_client.calls[4] == {
         "query": "事件 after:2026-06-01 before:2026-06-09",
         "kwargs": {"max_results": 15},
     }
