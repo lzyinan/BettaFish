@@ -27,7 +27,6 @@ import datetime
 from typing import List, Dict, Any, Optional, Literal
 
 from loguru import logger
-from config import settings
 
 # 运行前请确保已安装 requests 库: pip install requests
 try:
@@ -42,7 +41,16 @@ utils_dir = os.path.join(root_dir, 'utils')
 if utils_dir not in sys.path:
     sys.path.append(utils_dir)
 
+try:
+    from ..utils.config import settings
+except ImportError:
+    media_utils_dir = os.path.join(os.path.dirname(current_dir), 'utils')
+    if media_utils_dir not in sys.path:
+        sys.path.insert(0, media_utils_dir)
+    from config import settings
+
 from retry_helper import with_graceful_retry, SEARCH_API_RETRY_CONFIG
+from utils.searxng_client import SearXNGClient, SearXNGResponse
 
 # --- 1. 数据结构定义 ---
 from dataclasses import dataclass, field
@@ -265,6 +273,98 @@ class BochaMultimodalSearch:
         logger.info(f"--- TOOL: 搜索本周信息 (query: {query}) ---")
         return self._search_internal(query=query, freshness='oneWeek', answer=True)
 
+class SearXNGMultimodalSearch:
+    """
+    SearXNG-backed multimodal search adapter.
+    It returns BochaResponse so existing MediaEngine nodes can consume it unchanged.
+    """
+
+    def __init__(self, client: Optional[SearXNGClient] = None, **client_kwargs):
+        if client is not None:
+            self._client = client
+        else:
+            self._client = SearXNGClient(**client_kwargs)
+
+    @classmethod
+    def from_config(cls, config) -> "SearXNGMultimodalSearch":
+        def config_value(name: str, default: Any) -> Any:
+            value = getattr(config, name, default)
+            return default if value is None else value
+
+        return cls(
+            base_url=config_value("SEARXNG_BASE_URL", "http://localhost:8080"),
+            language=config_value("SEARXNG_LANGUAGE", "zh-CN"),
+            safesearch=int(config_value("SEARXNG_SAFESEARCH", 0)),
+            categories=config_value("SEARXNG_CATEGORIES", "general"),
+            engines=config_value("SEARXNG_ENGINES", ""),
+            timeout=int(config_value("SEARXNG_TIMEOUT", 30)),
+            max_results=int(config_value("SEARXNG_MAX_RESULTS", 10)),
+        )
+
+    @with_graceful_retry(SEARCH_API_RETRY_CONFIG, default_return=BochaResponse(query="搜索失败"))
+    def _search_internal(self, query: str, **kwargs) -> BochaResponse:
+        try:
+            response = self._client.search(query, **kwargs)
+            return self._to_bocha_response(response)
+        except Exception as e:
+            logger.exception(f"SearXNG搜索时发生错误: {str(e)}")
+            raise e
+
+    def _to_bocha_response(self, response: SearXNGResponse) -> BochaResponse:
+        webpages = [
+            WebpageResult(
+                name=item.title,
+                url=item.url,
+                snippet=item.content,
+                display_url=item.url,
+                date_last_crawled=item.published_date,
+            )
+            for item in response.results
+        ]
+
+        images = []
+        for item in response.results:
+            content_url = item.image_url or item.thumbnail_url
+            if content_url:
+                images.append(
+                    ImageResult(
+                        name=item.title,
+                        content_url=content_url,
+                        host_page_url=item.url,
+                        thumbnail_url=item.thumbnail_url,
+                    )
+                )
+
+        answer = response.answers[0] if response.answers else None
+        return BochaResponse(
+            query=response.query,
+            answer=answer,
+            follow_ups=[],
+            webpages=webpages,
+            images=images,
+            modal_cards=[],
+        )
+
+    def comprehensive_search(self, query: str, max_results: int = 10) -> BochaResponse:
+        logger.info(f"--- TOOL: SearXNG全面综合搜索 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=max_results)
+
+    def web_search_only(self, query: str, max_results: int = 15) -> BochaResponse:
+        logger.info(f"--- TOOL: SearXNG纯网页搜索 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=max_results)
+
+    def search_for_structured_data(self, query: str) -> BochaResponse:
+        logger.info(f"--- TOOL: SearXNG结构化数据查询 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=5)
+
+    def search_last_24_hours(self, query: str) -> BochaResponse:
+        logger.info(f"--- TOOL: SearXNG搜索24小时内信息 (query: {query}) ---")
+        return self._search_internal(query=query, max_results=10, time_range="day")
+
+    def search_last_week(self, query: str) -> BochaResponse:
+        logger.info(f"--- TOOL: SearXNG搜索本周信息 (query: {query}) ---")
+        return self._search_internal(query=f"{query} 最近一周", max_results=10, time_range="month")
+
 class AnspireAISearch:
     """
     Anspire AI Search 客户端
@@ -371,6 +471,9 @@ class AnspireAISearch:
 # --- 3. 测试与使用示例 ---
 def load_agent_from_config():
     """根据配置文件选择并加载搜索Agent"""
+    if settings.SEARCH_TOOL_TYPE == "SearXNGAPI":
+        logger.info("加载 SearXNGMultimodalSearch Agent")
+        return SearXNGMultimodalSearch.from_config(settings)
     if settings.BOCHA_WEB_SEARCH_API_KEY:
         logger.info("加载 BochaMultimodalSearch Agent")
         return BochaMultimodalSearch()

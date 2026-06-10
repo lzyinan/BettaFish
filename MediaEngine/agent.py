@@ -19,7 +19,7 @@ from .nodes import (
     ReportFormattingNode
 )
 from .state import State
-from .tools import BochaMultimodalSearch, BochaResponse, AnspireAISearch, AnspireResponse
+from .tools import BochaMultimodalSearch, BochaResponse, SearXNGMultimodalSearch, AnspireAISearch, AnspireResponse
 from .utils import settings, Settings, format_search_results_for_prompt
 
 
@@ -436,10 +436,35 @@ class DeepSearchAgent:
         self.state.save_to_file(filepath)
         logger.info(f"状态已保存到 {filepath}")
 
+class SearXNGSearchAgent(DeepSearchAgent):
+    """调用SearXNG搜索引擎的Deep Search Agent"""
+
+    def __init__(self, config: Optional[Settings] = None):
+        self.config = config or settings
+
+        # 初始化LLM客户端
+        self.llm_client = self._initialize_llm()
+
+        # 初始化搜索工具集
+        self.search_agency = SearXNGMultimodalSearch.from_config(self.config)
+
+        # 初始化节点
+        self._initialize_nodes()
+
+        # 状态
+        self.state = State()
+
+        # 确保输出目录存在
+        os.makedirs(self.config.OUTPUT_DIR, exist_ok=True)
+
+        logger.info(f"Media Agent已初始化")
+        logger.info(f"使用LLM: {self.llm_client.get_model_info()}")
+        logger.info(f"搜索工具集: SearXNGMultimodalSearch")
+
 class AnspireSearchAgent(DeepSearchAgent):
     """调用Anspire搜索引擎的Deep Search Agent"""
     
-    def __init__(self, config: Settings | None = None):
+    def __init__(self, config: Optional[Settings] = None):
         self.config = config or settings
         
         # 初始化LLM客户端
@@ -501,7 +526,8 @@ def create_agent(config_file: Optional[str] = None) -> DeepSearchAgent:
     Returns:
         DeepSearchAgent实例
     """
-    settings = Settings()
+    if settings.SEARCH_TOOL_TYPE == "SearXNGAPI":
+        return SearXNGSearchAgent(settings)
     if settings.SEARCH_TOOL_TYPE == "AnspireAPI":
         return AnspireSearchAgent(settings)
     return DeepSearchAgent(settings)

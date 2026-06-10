@@ -5,6 +5,7 @@
 
 from .search import (
     BochaMultimodalSearch,
+    SearXNGMultimodalSearch,
     AnspireAISearch,
     WebpageResult,
     ImageResult,
@@ -16,6 +17,7 @@ from .search import (
 
 __all__ = [
     "BochaMultimodalSearch",
+    "SearXNGMultimodalSearch",
     "AnspireAISearch",
     "WebpageResult", 
     "ImageResult",
