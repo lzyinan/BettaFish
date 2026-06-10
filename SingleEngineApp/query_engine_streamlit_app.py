@@ -98,20 +98,30 @@ def main():
         if not settings.QUERY_ENGINE_API_KEY:
             st.error("请在您的环境变量中设置QUERY_ENGINE_API_KEY")
             return
-        if not settings.TAVILY_API_KEY:
-            st.error("请在您的环境变量中设置TAVILY_API_KEY")
+
+        search_tool_type = getattr(settings, "QUERY_SEARCH_TOOL_TYPE", None) or getattr(settings, "SEARCH_TOOL_TYPE", "SearXNGAPI")
+        if search_tool_type != "SearXNGAPI" and not settings.TAVILY_API_KEY:
+            st.error("旧Tavily搜索路径需要配置TAVILY_API_KEY；默认SearXNG请将SEARCH_TOOL_TYPE设置为SearXNGAPI")
             return
 
         # 自动使用配置文件中的API密钥
         engine_key = settings.QUERY_ENGINE_API_KEY
-        tavily_key = settings.TAVILY_API_KEY
 
         # 创建配置
         config = Settings(
             QUERY_ENGINE_API_KEY=engine_key,
             QUERY_ENGINE_BASE_URL=settings.QUERY_ENGINE_BASE_URL,
             QUERY_ENGINE_MODEL_NAME=model_name,
-            TAVILY_API_KEY=tavily_key,
+            QUERY_SEARCH_TOOL_TYPE=getattr(settings, "QUERY_SEARCH_TOOL_TYPE", None),
+            SEARCH_TOOL_TYPE=getattr(settings, "SEARCH_TOOL_TYPE", "SearXNGAPI"),
+            TAVILY_API_KEY=settings.TAVILY_API_KEY,
+            SEARXNG_BASE_URL=settings.SEARXNG_BASE_URL,
+            SEARXNG_LANGUAGE=settings.SEARXNG_LANGUAGE,
+            SEARXNG_SAFESEARCH=settings.SEARXNG_SAFESEARCH,
+            SEARXNG_CATEGORIES=settings.SEARXNG_CATEGORIES,
+            SEARXNG_ENGINES=settings.SEARXNG_ENGINES,
+            SEARXNG_TIMEOUT=settings.SEARXNG_TIMEOUT,
+            SEARXNG_MAX_RESULTS=settings.SEARXNG_MAX_RESULTS,
             MAX_REFLECTIONS=max_reflections,
             SEARCH_CONTENT_MAX_LENGTH=max_content_length,
             OUTPUT_DIR="query_engine_streamlit_reports"
