@@ -113,6 +113,44 @@ def test_search_maps_result_fields_and_limits_results():
     assert response.results[0].thumbnail_url == "https://example.com/thumb.jpg"
 
 
+def test_search_filters_url_less_results_before_limiting():
+    payload = {
+        "query": "新能源",
+        "results": [
+            {"title": "无链接结果", "content": "不应占用结果槽位"},
+            {"title": "有效结果", "url": "https://example.com/valid", "content": "摘要"},
+        ],
+    }
+    fake_get = FakeGet(FakeResponse(payload))
+    client = SearXNGClient(base_url="http://localhost:8080", http_get=fake_get)
+
+    response = client.search("新能源", max_results=1)
+
+    assert len(response.results) == 1
+    assert response.results[0].title == "有效结果"
+    assert response.results[0].url == "https://example.com/valid"
+
+
+def test_search_does_not_use_page_url_as_image_url():
+    payload = {
+        "query": "新能源",
+        "results": [
+            {
+                "title": "普通网页",
+                "url": "https://example.com/page",
+                "content": "普通网页摘要",
+            },
+        ],
+    }
+    fake_get = FakeGet(FakeResponse(payload))
+    client = SearXNGClient(base_url="http://localhost:8080", http_get=fake_get)
+
+    response = client.search("新能源")
+
+    assert response.results[0].url == "https://example.com/page"
+    assert not response.results[0].image_url
+
+
 def test_search_raises_clear_error_for_disabled_json_format():
     fake_get = FakeGet(FakeResponse({"results": []}, status_code=403))
     client = SearXNGClient(base_url="http://localhost:8080", http_get=fake_get)

@@ -128,8 +128,8 @@ class SearXNGClient:
         response_time: float,
     ) -> SearXNGResponse:
         raw_results = payload.get("results") or []
-        parsed_results = [self._parse_result(item) for item in raw_results[:max_results]]
-        parsed_results = [item for item in parsed_results if item.url]
+        parsed_results = [self._parse_result(item) for item in raw_results]
+        parsed_results = [item for item in parsed_results if item.url][:max_results]
 
         return SearXNGResponse(
             query=payload.get("query") or fallback_query,
@@ -156,7 +156,7 @@ class SearXNGClient:
             ),
             engine=self._first_text(item.get("engine")),
             category=self._first_text(item.get("category")),
-            image_url=self._first_text(item.get("img_src"), item.get("content_url"), item.get("url")),
+            image_url=self._first_text(item.get("img_src"), item.get("content_url")),
             thumbnail_url=self._first_text(item.get("thumbnail"), item.get("thumbnail_src")),
         )
 
