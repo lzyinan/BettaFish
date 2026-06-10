@@ -208,13 +208,13 @@ class SearXNGNewsAgency:
     @classmethod
     def from_config(cls, config) -> "SearXNGNewsAgency":
         return cls(
-            base_url=config.SEARXNG_BASE_URL,
-            language=config.SEARXNG_LANGUAGE,
-            safesearch=config.SEARXNG_SAFESEARCH,
-            categories=config.SEARXNG_CATEGORIES,
-            engines=config.SEARXNG_ENGINES,
-            timeout=config.SEARXNG_TIMEOUT,
-            max_results=config.SEARXNG_MAX_RESULTS,
+            base_url=getattr(config, "SEARXNG_BASE_URL", "http://localhost:8080"),
+            language=getattr(config, "SEARXNG_LANGUAGE", "zh-CN"),
+            safesearch=int(getattr(config, "SEARXNG_SAFESEARCH", 0)),
+            categories=getattr(config, "SEARXNG_CATEGORIES", "general"),
+            engines=getattr(config, "SEARXNG_ENGINES", ""),
+            timeout=int(getattr(config, "SEARXNG_TIMEOUT", 30)),
+            max_results=int(getattr(config, "SEARXNG_MAX_RESULTS", 10)),
         )
 
     @with_graceful_retry(SEARCH_API_RETRY_CONFIG, default_return=TavilyResponse(query="搜索失败"))
