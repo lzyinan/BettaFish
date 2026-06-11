@@ -27,7 +27,7 @@ except locale.Error:
 # 添加src目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from MediaEngine import DeepSearchAgent, AnspireSearchAgent, Settings
+from MediaEngine import DeepSearchAgent, AnspireSearchAgent, SearXNGSearchAgent, Settings
 from config import settings
 from utils.github_issues import error_with_issue_link
 
@@ -108,7 +108,25 @@ def main():
         ansire_key = settings.ANSPIRE_API_KEY
 
         # 构建 Settings（pydantic_settings风格，优先大写环境变量）
-        if settings.SEARCH_TOOL_TYPE == "BochaAPI":
+        if settings.SEARCH_TOOL_TYPE == "SearXNGAPI":
+            logger.info("使用SearXNG搜索")
+            config = Settings(
+                MEDIA_ENGINE_API_KEY=engine_key,
+                MEDIA_ENGINE_BASE_URL=settings.MEDIA_ENGINE_BASE_URL,
+                MEDIA_ENGINE_MODEL_NAME=model_name,
+                SEARCH_TOOL_TYPE="SearXNGAPI",
+                SEARXNG_BASE_URL=settings.SEARXNG_BASE_URL,
+                SEARXNG_LANGUAGE=settings.SEARXNG_LANGUAGE,
+                SEARXNG_SAFESEARCH=settings.SEARXNG_SAFESEARCH,
+                SEARXNG_CATEGORIES=settings.SEARXNG_CATEGORIES,
+                SEARXNG_ENGINES=settings.SEARXNG_ENGINES,
+                SEARXNG_TIMEOUT=settings.SEARXNG_TIMEOUT,
+                SEARXNG_MAX_RESULTS=settings.SEARXNG_MAX_RESULTS,
+                MAX_REFLECTIONS=max_reflections,
+                SEARCH_CONTENT_MAX_LENGTH=max_content_length,
+                OUTPUT_DIR="media_engine_streamlit_reports",
+            )
+        elif settings.SEARCH_TOOL_TYPE == "BochaAPI":
             if not bocha_key:
                 st.error("请在您的环境变量中设置BOCHA_WEB_SEARCH_API_KEY")
                 logger.error("请在您的环境变量中设置BOCHA_WEB_SEARCH_API_KEY")
@@ -158,7 +176,9 @@ def execute_research(query: str, config: Settings):
 
         # 初始化Agent
         status_text.text("正在初始化Agent...")
-        if config.SEARCH_TOOL_TYPE == "BochaAPI":
+        if config.SEARCH_TOOL_TYPE == "SearXNGAPI":
+            agent = SearXNGSearchAgent(config)
+        elif config.SEARCH_TOOL_TYPE == "BochaAPI":
             agent = DeepSearchAgent(config)
         elif config.SEARCH_TOOL_TYPE == "AnspireAPI":
             agent = AnspireSearchAgent(config)

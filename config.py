@@ -77,10 +77,17 @@ class Settings(BaseSettings):
     KEYWORD_OPTIMIZER_MODEL_NAME: Optional[str] = Field(None, description="Keyword Optimizer LLM 模型名称，例如 qwen-plus")
     
     # ================== 网络工具配置 ====================
-    # Tavily API（申请地址：https://www.tavily.com/）
-    TAVILY_API_KEY: Optional[str] = Field(None, description="Tavily API（申请地址：https://www.tavily.com/）API密钥，用于Tavily网络搜索")
+    SEARCH_TOOL_TYPE: Literal["SearXNGAPI", "AnspireAPI", "BochaAPI"] = Field("SearXNGAPI", description="网络搜索工具类型，支持SearXNGAPI、BochaAPI或AnspireAPI，默认为SearXNGAPI")
+    SEARXNG_BASE_URL: str = Field("http://localhost:8080", description="SearXNG Base URL，例如 http://localhost:8080")
+    SEARXNG_LANGUAGE: str = Field("zh-CN", description="SearXNG 搜索语言")
+    SEARXNG_SAFESEARCH: int = Field(0, description="SearXNG 安全搜索等级，0关闭，1中等，2严格")
+    SEARXNG_CATEGORIES: str = Field("general", description="SearXNG 默认搜索分类")
+    SEARXNG_ENGINES: str = Field("", description="SearXNG 指定搜索引擎，逗号分隔；为空使用实例默认")
+    SEARXNG_TIMEOUT: int = Field(30, description="SearXNG 请求超时秒数")
+    SEARXNG_MAX_RESULTS: int = Field(10, description="SearXNG 默认最大结果数")
+    # Tavily API（申请地址：https://www.tavily.com/），仅保留用于旧 QueryEngine 工具兼容
+    TAVILY_API_KEY: Optional[str] = Field(None, description="Tavily API（申请地址：https://www.tavily.com/）API密钥，用于旧QueryEngine工具兼容")
 
-    SEARCH_TOOL_TYPE: Literal["AnspireAPI", "BochaAPI"] = Field("AnspireAPI", description="网络搜索工具类型，支持BochaAPI或AnspireAPI两种，默认为AnspireAPI")
     # Bocha API（申请地址：https://open.bochaai.com/）
     BOCHA_BASE_URL: Optional[str] = Field("https://api.bocha.cn/v1/ai-search", description="Bocha AI 搜索BaseUrl或博查网页搜索BaseUrl")
     BOCHA_WEB_SEARCH_API_KEY: Optional[str] = Field(None, description="Bocha API（申请地址：https://open.bochaai.com/）API密钥，用于Bocha搜索")

@@ -5,6 +5,7 @@
 
 from .search import (
     TavilyNewsAgency, 
+    SearXNGNewsAgency,
     SearchResult, 
     TavilyResponse, 
     ImageResult,
@@ -13,6 +14,7 @@ from .search import (
 
 __all__ = [
     "TavilyNewsAgency", 
+    "SearXNGNewsAgency",
     "SearchResult", 
     "TavilyResponse", 
     "ImageResult",

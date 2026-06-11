@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     INSIGHT_ENGINE_BASE_URL: Optional[str] = Field("https://api.moonshot.cn/v1", description="Insight Agent LLM接口BaseUrl，可自定义厂商API")
     INSIGHT_ENGINE_MODEL_NAME: str = Field("kimi-k2-0711-preview", description="Insight Agent LLM模型名称，如kimi-k2-0711-preview")
     
-    MEDIA_ENGINE_API_KEY: str = Field(None, description="Media Agent（推荐Gemini，这里我用了一个中转厂商，你也可以换成你自己的，申请地址：https://www.chataiapi.com/）API密钥")
+    MEDIA_ENGINE_API_KEY: Optional[str] = Field(None, description="Media Agent（推荐Gemini，这里我用了一个中转厂商，你也可以换成你自己的，申请地址：https://www.chataiapi.com/）API密钥")
     MEDIA_ENGINE_BASE_URL: Optional[str] = Field("https://www.chataiapi.com/v1", description="Media Agent LLM接口BaseUrl")
     MEDIA_ENGINE_MODEL_NAME: str = Field("gemini-2.5-pro", description="Media Agent LLM模型名称，如gemini-2.5-pro")
     
@@ -71,7 +71,14 @@ class Settings(BaseSettings):
     # ================== 网络工具配置 ====================
     TAVILY_API_KEY: str = Field(None, description="Tavily API（申请地址：https://www.tavily.com/）API密钥，用于Tavily网络搜索")
     
-    SEARCH_TOOL_TYPE: Literal["AnspireAPI", "BochaAPI"] = Field("AnspireAPI", description="网络搜索工具类型，支持BochaAPI或AnspireAPI两种，默认为AnspireAPI")
+    SEARCH_TOOL_TYPE: Literal["SearXNGAPI", "AnspireAPI", "BochaAPI"] = Field("SearXNGAPI", description="网络搜索工具类型，支持SearXNGAPI、BochaAPI或AnspireAPI，默认为SearXNGAPI")
+    SEARXNG_BASE_URL: str = Field("http://localhost:8080", description="SearXNG Base URL，例如 http://localhost:8080")
+    SEARXNG_LANGUAGE: str = Field("zh-CN", description="SearXNG 搜索语言")
+    SEARXNG_SAFESEARCH: int = Field(0, description="SearXNG 安全搜索等级，0关闭，1中等，2严格")
+    SEARXNG_CATEGORIES: str = Field("general", description="SearXNG 默认搜索分类")
+    SEARXNG_ENGINES: str = Field("", description="SearXNG 指定搜索引擎，逗号分隔；为空使用实例默认")
+    SEARXNG_TIMEOUT: int = Field(30, description="SearXNG 请求超时秒数")
+    SEARXNG_MAX_RESULTS: int = Field(10, description="SearXNG 默认最大结果数")
     BOCHA_BASE_URL: Optional[str] = Field("https://api.bochaai.com/v1/ai-search", description="Bocha AI 搜索BaseUrl或博查网页搜索BaseUrl")
     BOCHA_WEB_SEARCH_API_KEY: Optional[str] = Field(None, description="Bocha API（申请地址：https://open.bochaai.com/）API密钥，用于Bocha搜索")
     # Anspire AI Search API（申请地址：https://open.anspire.cn/）

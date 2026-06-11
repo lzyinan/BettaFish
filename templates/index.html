@@ -2108,16 +2108,25 @@
             },
             {
                 title: '外部检索工具',
-                subtitle: '联动搜索引擎、网站抓取等在线服务，两个都需配置',
+                subtitle: '默认使用自托管 SearXNG；Bocha 和 Anspire 可作为旧检索工具后备',
                 fields: [
                     {
                         key: 'SEARCH_TOOL_TYPE',
                         label: '选择检索工具',
                         type: 'select',
-                        options: ['BochaAPI', 'AnspireAPI']
+                        options: ['SearXNGAPI', 'BochaAPI', 'AnspireAPI']
                     },
-                    { key: 'TAVILY_API_KEY', label: 'Tavily API Key', type: 'password' },
+                    { key: 'SEARXNG_BASE_URL', label: 'SearXNG Base URL', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'SEARXNG_LANGUAGE', label: 'SearXNG 语言', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'SEARXNG_SAFESEARCH', label: 'SearXNG 安全搜索', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'SEARXNG_CATEGORIES', label: 'SearXNG 分类', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'SEARXNG_ENGINES', label: 'SearXNG 引擎', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'SEARXNG_TIMEOUT', label: 'SearXNG 超时秒数', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'SEARXNG_MAX_RESULTS', label: 'SearXNG 最大结果数', condition: { key: 'SEARCH_TOOL_TYPE', value: 'SearXNGAPI' } },
+                    { key: 'TAVILY_API_KEY', label: 'Tavily API Key（旧工具兼容）', type: 'password' },
+                    { key: 'BOCHA_BASE_URL', label: 'Bocha Base URL', condition: { key: 'SEARCH_TOOL_TYPE', value: 'BochaAPI' } },
                     { key: 'BOCHA_WEB_SEARCH_API_KEY', label: 'Bocha API Key', type: 'password', condition: { key: 'SEARCH_TOOL_TYPE', value: 'BochaAPI' } },
+                    { key: 'ANSPIRE_BASE_URL', label: 'Anspire Base URL', condition: { key: 'SEARCH_TOOL_TYPE', value: 'AnspireAPI' } },
                     { key: 'ANSPIRE_API_KEY', label: 'Anspire API Key', type: 'password', condition: { key: 'SEARCH_TOOL_TYPE', value: 'AnspireAPI' } }
                 ]
             }
