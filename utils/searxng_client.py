@@ -2,8 +2,18 @@ from dataclasses import dataclass, field
 import json
 import time
 from typing import Any, Callable, Dict, List, Optional
+from urllib import error, parse, request
 
-import requests
+
+DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0 Safari/537.36"
+    ),
+    "Accept": "application/json,text/plain,*/*",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+}
 
 
 @dataclass
@@ -29,6 +39,31 @@ class SearXNGResponse:
     response_time: Optional[float] = None
 
 
+class _UrllibResponse:
+    def __init__(self, status_code: int, headers: Any, body: bytes):
+        self.status_code = status_code
+        self.headers = headers
+        self.text = body.decode("utf-8", errors="replace")
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"SearXNG HTTP {self.status_code}: {self.text[:300]}")
+
+    def json(self):
+        return json.loads(self.text)
+
+
+def _default_http_get(url: str, params=None, headers=None, timeout=None):
+    query = parse.urlencode(params or {}, doseq=True)
+    request_url = f"{url}?{query}" if query else url
+    req = request.Request(request_url, headers=headers or {})
+    try:
+        with request.urlopen(req, timeout=timeout) as response:
+            return _UrllibResponse(response.status, response.headers, response.read())
+    except error.HTTPError as exc:
+        return _UrllibResponse(exc.code, exc.headers, exc.read())
+
+
 class SearXNGClient:
     def __init__(
         self,
@@ -52,7 +87,8 @@ class SearXNGClient:
         self.engines = engines
         self.timeout = timeout
         self.max_results = max_results
-        self._http_get = http_get or requests.get
+        self._http_get = http_get or _default_http_get
+        self._headers = DEFAULT_HEADERS.copy()
 
     def search(
         self,
@@ -72,11 +108,17 @@ class SearXNGClient:
             pageno=pageno,
         )
         started = time.perf_counter()
-        response = self._http_get(self.search_url, params=params, timeout=self.timeout)
+        response = self._http_get(
+            self.search_url,
+            params=params,
+            headers=self._headers,
+            timeout=self.timeout,
+        )
 
         if getattr(response, "status_code", None) == 403:
             raise RuntimeError(
-                "SearXNG 实例拒绝 JSON 输出。请在 settings.yml 的 search.formats 中启用 json。"
+                "SearXNG 实例返回 403。请确认 settings.yml 的 search.formats 已启用 json，"
+                "且前置网关/WAF 允许程序化访问。"
             )
 
         response.raise_for_status()

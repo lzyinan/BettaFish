@@ -26,8 +26,15 @@ class FakeGet:
         self.response = response
         self.calls = []
 
-    def __call__(self, url, params=None, timeout=None):
-        self.calls.append({"url": url, "params": params, "timeout": timeout})
+    def __call__(self, url, params=None, headers=None, timeout=None):
+        self.calls.append(
+            {
+                "url": url,
+                "params": params,
+                "headers": headers,
+                "timeout": timeout,
+            }
+        )
         return self.response
 
 
@@ -58,6 +65,15 @@ def test_search_normalizes_base_url_and_builds_params():
                 "categories": "images",
                 "engines": "bing,google",
                 "time_range": "day",
+            },
+            "headers": {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/126.0 Safari/537.36"
+                ),
+                "Accept": "application/json,text/plain,*/*",
+                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
             },
             "timeout": 12,
         }

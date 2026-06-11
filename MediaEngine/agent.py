@@ -39,7 +39,7 @@ class DeepSearchAgent:
         self.llm_client = self._initialize_llm()
         
         # 初始化搜索工具集
-        self.search_agency = BochaMultimodalSearch(api_key=(self.config.BOCHA_API_KEY or self.config.BOCHA_WEB_SEARCH_API_KEY))
+        self.search_agency = self._initialize_search_agency()
         
         # 初始化节点
         self._initialize_nodes()
@@ -52,7 +52,7 @@ class DeepSearchAgent:
         
         logger.info(f"Media Agent已初始化")
         logger.info(f"使用LLM: {self.llm_client.get_model_info()}")
-        logger.info(f"搜索工具集: BochaMultimodalSearch (支持5种多模态搜索工具)")
+        logger.info(f"搜索工具集: {self.search_agency.__class__.__name__}")
     
     def _initialize_llm(self) -> LLMClient:
         """初始化LLM客户端"""
@@ -60,6 +60,16 @@ class DeepSearchAgent:
             api_key=(self.config.MEDIA_ENGINE_API_KEY or self.config.MINDSPIDER_API_KEY),
             model_name=(self.config.MEDIA_ENGINE_MODEL_NAME or self.config.MINDSPIDER_MODEL_NAME),
             base_url=(self.config.MEDIA_ENGINE_BASE_URL or self.config.MINDSPIDER_BASE_URL),
+        )
+
+    def _initialize_search_agency(self):
+        """根据配置初始化媒体搜索工具，默认使用 SearXNG。"""
+        search_tool_type = getattr(self.config, "SEARCH_TOOL_TYPE", "SearXNGAPI")
+        if search_tool_type == "SearXNGAPI":
+            return SearXNGMultimodalSearch.from_config(self.config)
+
+        return BochaMultimodalSearch(
+            api_key=(self.config.BOCHA_API_KEY or self.config.BOCHA_WEB_SEARCH_API_KEY)
         )
     
     def _initialize_nodes(self):

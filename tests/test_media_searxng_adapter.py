@@ -125,3 +125,44 @@ def test_create_agent_selects_searxng_agent(monkeypatch):
     result = agent_module.create_agent()
 
     assert result.__class__ is agent_module.SearXNGSearchAgent
+
+
+def test_deep_search_agent_uses_searxng_for_default_config(monkeypatch, tmp_path):
+    import MediaEngine.agent as agent_module
+
+    class FakeConfig:
+        SEARCH_TOOL_TYPE = "SearXNGAPI"
+        OUTPUT_DIR = str(tmp_path)
+
+    class FakeLLMClient:
+        def get_model_info(self):
+            return {"model": "fake"}
+
+    class FailBochaSearch:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("Bocha should not be initialized for default SearXNG config")
+
+    fake_search = object()
+    constructed = []
+
+    monkeypatch.setattr(
+        agent_module.DeepSearchAgent,
+        "_initialize_llm",
+        lambda self: FakeLLMClient(),
+    )
+    monkeypatch.setattr(
+        agent_module.DeepSearchAgent,
+        "_initialize_nodes",
+        lambda self: None,
+    )
+    monkeypatch.setattr(agent_module, "BochaMultimodalSearch", FailBochaSearch)
+    monkeypatch.setattr(
+        agent_module.SearXNGMultimodalSearch,
+        "from_config",
+        lambda config: constructed.append(config) or fake_search,
+    )
+
+    agent = agent_module.DeepSearchAgent(FakeConfig())
+
+    assert constructed == [agent.config]
+    assert agent.search_agency is fake_search
